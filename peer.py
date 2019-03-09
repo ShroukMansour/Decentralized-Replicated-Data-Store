@@ -1,10 +1,12 @@
 import json
 import socket
 import threading
+import time
+
 import msgpack
-import pprint
 from queuingModule import QueuingModule
 from dataGenerator import DataGenerator
+from dataStorage import DataStorage
 
 class Node:
     def __init__(self, node_name):
@@ -12,7 +14,8 @@ class Node:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind(('', 0))
         self.port = self.socket.getsockname()[1]
-        self.queuing_module = QueuingModule()
+        self.data_storage = DataStorage()
+        self.queuing_module = QueuingModule(self.data_storage)
         self.send_greetings()
         self.run()
 
@@ -40,10 +43,28 @@ class Node:
                 with open('peers_info.json', 'w') as f:
                     json.dump(new_peer, f)
             elif data['type'] == 'fake_data':
-                print("Iam peer ", self.name, " received fake data")
+                print("I'm peer ", self.name, " received fake data")
                 self.queuing_module.add_data(data['data'])
+            elif data['type'] == 'sync':
+                print("data sync")
+                self.queuing_module.add_data(data['data'], synced=True)
 
-    def get_all_nodes(self):
+    def sync_with_peers(self):
+        time.sleep(3)
+        all_peers = self.get_all_peers()
+        my_data = self.data_storage.get_all_data()
+        for data in my_data:
+            data = data[0]
+            if not data.synced:
+                for peer in all_peers:
+                    if peer not in data.synced_with:
+                        data.sync_with_peer(peer)
+                        self.send_data(peer, {"data":data.data, "size":data.size}, "sync")
+                data.synced = True
+
+
+
+    def get_all_peers(self):
         peers = []
         with open('peers_info.json') as f:
             peers_json = json.load(f)
@@ -52,19 +73,22 @@ class Node:
         return peers
 
     def broadcast_data(self, data, type):
-        all_nodes = self.get_all_nodes()
+        all_nodes = self.get_all_peers()
         for node in all_nodes:
             self.send_data(node, data, type)
 
     def run(self):
         receiving_thread = threading.Thread(target=self.receive_data)
         receiving_thread.start()
+        syncronization_thread = threading.Thread(target=self.sync_with_peers)
+        syncronization_thread.start()
 
 
-
-node1 = Node("node1")
-node2 = Node("node2")
+p1 = Node("peer2")
+p2 = Node("peer2")
 data_generator = DataGenerator()
+
+
 
 # node1.send_data(['127.0.0.1', node2.port], "data")
 # n2.broadcast_data("Im node 2 and msg is broadcasted")
