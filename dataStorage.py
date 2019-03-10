@@ -10,7 +10,6 @@ class DataStorage:
         time.sleep(random.randint(0, 2))
         self.hard_disk_sim.append(data)
         print("---------> data", data[0].data, " with size ", data[0].size)
-        # TODO sleep amount of time
 
     def get_all_data(self):
         return self.hard_disk_sim

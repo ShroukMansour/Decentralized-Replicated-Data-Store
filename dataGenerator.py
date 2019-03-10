@@ -20,16 +20,10 @@ class DataGenerator:
         while True:
             peer_num = random.randint(0, len(all_peers)-1)
             peer = all_peers[peer_num]
-            data_obj = Data(random.randint(1, 1000), random.randint(1, 100)).json_data()
+            data_obj = Data(random.randint(1, 1000), random.randint(1, 30)).json_data()
             data_to_send = msgpack.packb(json.dumps({'type': "fake_data", 'data': data_obj}))
             self.socket.sendto(data_to_send, ('127.0.0.1', int(peer[1])))
             time.sleep(random.randint(0, 3))  # in seconds
-
-
-    # def broadcast_data(self, data, type):
-    #     all_nodes = self.get_all_nodes()
-    #     for node in all_nodes:
-    #         self.send_data(node, data, type)
 
     def get_all_peers(self):
         peers = []
